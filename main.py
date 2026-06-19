@@ -38,6 +38,25 @@ def init_db(conn):
                      created_at   TEXT DEFAULT CURRENT_TIMESTAMP
                  )
                  """)
+    conn.execute("""
+                 CREATE TABLE IF NOT EXISTS users
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     username   TEXT UNIQUE NOT NULL,
+                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                 )
+                 """)
+    conn.execute("""
+                 CREATE TABLE IF NOT EXISTS article_ratings
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     user_id    INTEGER NOT NULL REFERENCES users (id),
+                     article_id INTEGER NOT NULL REFERENCES articles (id),
+                     rating     INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+                     rated_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+                     UNIQUE (user_id, article_id)
+                 )
+                 """)
     conn.commit()
 
 
@@ -147,13 +166,13 @@ def main():
     conn = sqlite3.connect('personews.db')
     init_db(conn)
 
-    for feed in FEEDS:
-        articles = fetch_articles_from_feed(feed)
-        new_count = save_articles(conn, articles)
-        print(f"{feed['name']}: fetched {len(articles)}, saved {new_count} new")
-
-    categorize_articles(conn)
-    print_results(conn)
+    # for feed in FEEDS:
+    #     articles = fetch_articles_from_feed(feed)
+    #     new_count = save_articles(conn, articles)
+    #     print(f"{feed['name']}: fetched {len(articles)}, saved {new_count} new")
+    #
+    # categorize_articles(conn)
+    # print_results(conn)
 
     conn.close()
 
