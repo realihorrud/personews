@@ -38,6 +38,25 @@ def init_db(conn):
                      created_at   TEXT DEFAULT CURRENT_TIMESTAMP
                  )
                  """)
+    conn.execute("""
+                 CREATE TABLE IF NOT EXISTS users
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     username   TEXT UNIQUE NOT NULL,
+                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                 )
+                 """)
+    conn.execute("""
+                 CREATE TABLE IF NOT EXISTS article_ratings
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     user_id    INTEGER NOT NULL REFERENCES users (id),
+                     article_id INTEGER NOT NULL REFERENCES articles (id),
+                     rating     INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+                     rated_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+                     UNIQUE (user_id, article_id)
+                 )
+                 """)
     conn.commit()
 
 
@@ -49,7 +68,7 @@ def fetch_articles_from_feed(feed):
             'title': entry.get('title', '').strip(),
             'summary': entry.get('summary', '').strip(),
             'url': clean_url(entry.get('link', '').strip()),
-            'source': entry.get('source', '').strip(),
+            'source': parsed['href'],
             'published_at': entry.get('published_at', str(datetime.now())),
         })
     return articles
