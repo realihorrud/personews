@@ -4,6 +4,8 @@ from urllib.parse import urlparse, urlunparse
 import feedparser
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from embeddings import embed_articles
+from recommender import show_recommendations
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
 
@@ -11,8 +13,6 @@ FEEDS = [
     {"name": "Українська Правда", "url": "https://www.pravda.com.ua/rss"},
     {"name": "Суспільне", "url": "https://suspilne.media/rss/all.rss"},
     {"name": "ТСН", "url": "https://tsn.ua/rss"},
-    {"name": "МЕЖА", "url": "https://mezha.ua/feed/"},
-    {"name": "r/reddit_ukr", "url": "https://www.reddit.com/r/reddit_ukr.rss"},
 ]
 
 CATEGORY_SEEDS = {
@@ -173,6 +173,8 @@ def main():
 
     categorize_articles(conn)
     print_results(conn)
+    embed_articles(conn)
+    show_recommendations(conn, username="ihorrud")
 
     conn.close()
 

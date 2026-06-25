@@ -1,0 +1,96 @@
+import numpy as np
+import random
+from embeddings import load_embedding
+
+
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
+
+
+def build_preference_vector(conn, user_id):
+    ratings = conn.execute("""
+                           SELECT a.embedding, r.rating
+                           FROM article_ratings r
+                                    JOIN articles a ON a.id = r.article_id
+                           WHERE r.user_id = ?
+                             AND a.embedding IS NOT NULL
+                           """, (user_id,)).fetchall()
+
+    if not ratings:
+        return None
+
+    positive = [load_embedding(blob) for blob, rating in ratings if rating == 1]
+    negative = [load_embedding(blob) for blob, rating in ratings if rating == -1]
+
+    dim = load_embedding(ratings[0][0]).shape[0]
+    preference = np.zeros(dim)
+
+    if positive:
+        preference += np.mean(positive, axis=0)
+
+    if negative:
+        preference -= 0.5 * np.mean(negative, axis=0)
+
+    norm = np.linalg.norm(preference)
+    if norm > 0:
+        preference /= norm
+
+    return preference
+
+
+def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
+    preference = build_preference_vector(conn, user_id)
+
+    if preference is None:
+        print("Rate some articles first.")
+        return []
+
+    candidates = conn.execute("""
+                              SELECT a.id, a.title, a.source, a.category, a.url, a.embedding
+                              FROM articles a
+                                       LEFT JOIN article_ratings r ON a.id = r.article_id AND r.user_id = ?
+                              WHERE r.id IS NULL
+                                AND a.embedding IS NOT NULL
+                              """, (user_id,)).fetchall()
+
+    if not candidates:
+        return []
+
+    scored = []
+    for article_id, title, source, category, url, blob in candidates:
+        embedding = load_embedding(blob)
+        score = cosine_similarity(preference, embedding)
+        scored.append((score, article_id, title, source, category, url))
+    scored.sort(reverse=True)
+
+    # Exploitation — top articles the model is confident you'll like
+    exploit_n = int(limit * (1 - exploration_ratio))
+    exploit = scored[:exploit_n]
+
+    # Exploration — random picks from the rest to fight the filter bubble
+    explore_pool = scored[exploit_n:]
+    explore = random.sample(explore_pool, min(limit - exploit_n, len(explore_pool)))
+
+    results = exploit + explore
+    random.shuffle(results)
+    return results
+
+
+def show_recommendations(conn, username):
+    user = conn.execute("""
+        SELECT id FROM users WHERE username = ?
+    """, (username,)).fetchone()
+
+    if not user:
+        print("User not found.")
+        return
+
+    recs = get_recommendations(conn, user[0])
+    if not recs:
+        return
+
+    print(f"\n✨ Your personalized feed ({len(recs)} articles)\n")
+    for i, (score, _, title, source, category, url) in enumerate(recs, 1):
+        print(f"  [{i}] [{category or '—'}]  {source}  (match: {score:.0%})")
+        print(f"       {title}")
+        print(f"       {url}\n")

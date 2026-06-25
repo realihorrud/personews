@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "feedparser>=6.0.12",
     "scikit-learn>=1.9.0",
+    "sentence-transformers>=5.6.0",
 ]

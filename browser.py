@@ -15,7 +15,7 @@ def get_or_create_user(conn, username):
     ).fetchone()[0]
 
 
-def get_unrelated_articles(conn, user_id, limit=2):
+def get_unrelated_articles(conn, user_id, limit=15):
     return conn.execute("""
                         WITH ranked AS (SELECT a.id,
                                                a.title,
