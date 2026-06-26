@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from embeddings import load_embedding
+from ml.embeddings import load_embedding
 
 
 def cosine_similarity(a, b):
@@ -46,21 +46,22 @@ def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
         return []
 
     candidates = conn.execute("""
-                              SELECT a.id, a.title, a.source, a.category, a.url, a.embedding
+                              SELECT a.id, a.title, a.source, a.category, a.url, a.embedding, a.published_at
                               FROM articles a
                                        LEFT JOIN article_ratings r ON a.id = r.article_id AND r.user_id = ?
+                                       LEFT JOIN article_reads ar ON a.id = ar.article_id AND r.user_id = ?
                               WHERE r.id IS NULL
-                                AND a.embedding IS NOT NULL
-                              """, (user_id,)).fetchall()
+                                AND a.embedding IS NOT NULL AND ar.read_at IS NULL
+                              """, (user_id, user_id)).fetchall()
 
     if not candidates:
         return []
 
     scored = []
-    for article_id, title, source, category, url, blob in candidates:
+    for article_id, title, source, category, url, blob, published_at in candidates:
         embedding = load_embedding(blob)
         score = cosine_similarity(preference, embedding)
-        scored.append((score, article_id, title, source, category, url))
+        scored.append((score, article_id, title, source, category, url, published_at))
     scored.sort(reverse=True)
 
     # Exploitation — top articles the model is confident you'll like
@@ -74,23 +75,3 @@ def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
     results = exploit + explore
     random.shuffle(results)
     return results
-
-
-def show_recommendations(conn, username):
-    user = conn.execute("""
-        SELECT id FROM users WHERE username = ?
-    """, (username,)).fetchone()
-
-    if not user:
-        print("User not found.")
-        return
-
-    recs = get_recommendations(conn, user[0])
-    if not recs:
-        return
-
-    print(f"\n✨ Your personalized feed ({len(recs)} articles)\n")
-    for i, (score, _, title, source, category, url) in enumerate(recs, 1):
-        print(f"  [{i}] [{category or '—'}]  {source}  (match: {score:.0%})")
-        print(f"       {title}")
-        print(f"       {url}\n")

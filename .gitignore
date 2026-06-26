@@ -12,3 +12,4 @@ wheels/
 .idea
 
 personews.db
+.env
