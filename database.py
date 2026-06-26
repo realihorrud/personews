@@ -1,6 +1,7 @@
 import sqlite3
+import os
 
-DB_PATH = 'personews.db'
+DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "news.db"))
 
 
 def get_conn():
@@ -26,22 +27,24 @@ def init_db():
                  )
                  """)
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            clerk_id   TEXT UNIQUE,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+                 CREATE TABLE IF NOT EXISTS users
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     clerk_id   TEXT UNIQUE,
+                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                 )
+                 """)
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS article_ratings (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            article_id INTEGER NOT NULL REFERENCES articles(id),
-            rating     INTEGER NOT NULL CHECK(rating IN (-1, 1)),
-            rated_at   TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, article_id)
-        )
-    """)
+                 CREATE TABLE IF NOT EXISTS article_ratings
+                 (
+                     id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                     user_id    INTEGER NOT NULL REFERENCES users (id),
+                     article_id INTEGER NOT NULL REFERENCES articles (id),
+                     rating     INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+                     rated_at   TEXT DEFAULT CURRENT_TIMESTAMP,
+                     UNIQUE (user_id, article_id)
+                 )
+                 """)
     conn.execute("""
                  CREATE TABLE IF NOT EXISTS article_reads
                  (
