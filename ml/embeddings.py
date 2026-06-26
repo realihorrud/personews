@@ -38,7 +38,7 @@ def embed_articles(conn):
 
     print(f"Embedding {len(articles)} articles...")
 
-    embeddings = model.encode(texts, show_progress_bar=True, batch_size=32)
+    embeddings = model.encode(texts, show_progress_bar=True, batch_size=2)
     updates = [(emb.astype(np.float32).tobytes(), article_id) for (article_id, _, _), emb in zip(articles, embeddings)]
     conn.executemany("UPDATE articles SET embedding = ? WHERE id = ?", updates)
     conn.commit()
