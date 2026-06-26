@@ -27,7 +27,7 @@ app = FastAPI(title="Ukrainian News Recommender API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://holamundoo.com"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5174").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
