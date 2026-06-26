@@ -8,7 +8,15 @@ def run_pipeline():
     fetch_all_feeds()
 
     conn = get_conn()
-    categorize_articles(conn)
-    embed_articles(conn)
+
+    try:
+        print("Categorizing and embedding articles...")
+        categorize_articles(conn)
+        embed_articles(conn)
+    except Exception as e:
+        print(f"Pipeline failed: {e}")
+        import traceback
+        traceback.print_exc()
+
     conn.close()
     print("Pipeline complete.")
