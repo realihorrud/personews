@@ -27,7 +27,7 @@ app = FastAPI(title="Ukrainian News Recommender API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://ukrainian-news-recommender-frontend.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
