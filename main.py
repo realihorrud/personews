@@ -1,5 +1,7 @@
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -15,7 +17,7 @@ scheduler = BackgroundScheduler()
 async def lifespan(app: FastAPI):
     init_db()
     run_pipeline()  # fetch + categorize + embed
-    scheduler.add_job(run_pipeline, "interval", hours=1)
+    scheduler.add_job(run_pipeline, "interval", hours=1, next_run_time=datetime.now())
     scheduler.start()
     yield
     scheduler.shutdown()
