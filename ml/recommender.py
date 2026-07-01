@@ -65,6 +65,8 @@ def get_recommendations(conn, user_id, limit=10, offset=0, exploration_ratio=0.1
         score = cosine_similarity(preference, embedding)
         scored.append((score, article_id, title, source, category, url, published_at))
 
+    scored.sort(reverse=True)
+
     # Exploitation — top articles the model is confident you'll like
     exploit_n = int(limit * (1 - exploration_ratio))
 
@@ -75,4 +77,7 @@ def get_recommendations(conn, user_id, limit=10, offset=0, exploration_ratio=0.1
     explore_pool = paginated[exploit_n:]
     explore = random.sample(explore_pool, min(limit - exploit_n, len(explore_pool)))
 
-    return exploit + explore
+    result = exploit + explore
+    random.shuffle(result)
+
+    return result
