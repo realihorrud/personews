@@ -38,7 +38,7 @@ def build_preference_vector(conn, user_id):
     return preference
 
 
-def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
+def get_recommendations(conn, user_id, limit=10, offset=0, exploration_ratio=0.15):
     preference = build_preference_vector(conn, user_id)
 
     if preference is None:
@@ -51,7 +51,9 @@ def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
                                        LEFT JOIN article_ratings r ON a.id = r.article_id AND r.user_id = ?
                                        LEFT JOIN article_reads ar ON a.id = ar.article_id AND r.user_id = ?
                               WHERE r.id IS NULL
-                                AND a.embedding IS NOT NULL AND ar.read_at IS NULL
+                                AND a.embedding IS NOT NULL
+                                AND ar.read_at IS NULL
+                              ORDER BY a.published_at DESC
                               """, (user_id, user_id)).fetchall()
 
     if not candidates:
@@ -62,16 +64,15 @@ def get_recommendations(conn, user_id, limit=10, exploration_ratio=0.15):
         embedding = load_embedding(blob)
         score = cosine_similarity(preference, embedding)
         scored.append((score, article_id, title, source, category, url, published_at))
-    scored.sort(reverse=True)
 
     # Exploitation — top articles the model is confident you'll like
     exploit_n = int(limit * (1 - exploration_ratio))
-    exploit = scored[:exploit_n]
+
+    paginated = scored[offset:]
 
     # Exploration — random picks from the rest to fight the filter bubble
-    explore_pool = scored[exploit_n:]
+    exploit = paginated[:exploit_n]
+    explore_pool = paginated[exploit_n:]
     explore = random.sample(explore_pool, min(limit - exploit_n, len(explore_pool)))
 
-    results = exploit + explore
-    random.shuffle(results)
-    return results
+    return exploit + explore
